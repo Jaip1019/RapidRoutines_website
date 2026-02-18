@@ -1,2 +1,0 @@
-<?php if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
-$environment_variable = '{"theme":{"folder_name":"phlox","mapped_name":""},"allowed_paths":["\/home\/u956043483\/domains\/rapidroutines.org\/public_html\/wp-content\/themes"],"cache_path":"\/home\/u956043483\/domains\/rapidroutines.org\/public_html\/wp-content\/cache\/wph\/","wordpress_directory":"","site_relative_path":"\/"}'; ?>

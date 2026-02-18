@@ -1,0 +1,9 @@
+{
+  "name": "rapidroutines-site",
+  "private": true,
+  "scripts": {
+    "dev": "node local-server.js",
+    "serve": "node local-server.js",
+    "build:dashboard": "cd dashboard_main && npm run build && cd .. && rm -rf dashboard && mkdir -p dashboard && cp -R dashboard_main/dist/* dashboard/"
+  }
+}
