@@ -1,0 +1,162 @@
+<?php
+
+namespace WPCoder\Dashboard;
+
+defined( 'ABSPATH' ) || exit;
+
+use WPCoder\WPCoder;
+
+class Settings {
+
+	public static function init(): void {
+		$pages = DashboardHelper::get_files( 'settings' );
+
+		$default = Field::getDefault();
+
+		$i = 0;
+		echo '<h3 class="nav-tab-wrapper wowp-tab" id="settings-tab">';
+		foreach ( $pages as $key => $page ) {
+			$current = ( $i === 0 ) ? 'nav-tab nav-tab-active' : 'nav-tab';
+
+			if ( $page['file'] === 'html-code' && ! empty( $default['param']['hide_html'] ) ) {
+				continue;
+			}
+
+			if ( $page['file'] === 'css-code' && ! empty( $default['param']['hide_css'] ) ) {
+				continue;
+			}
+
+			if ( $page['file'] === 'js-code' && ! empty( $default['param']['hide_js'] ) ) {
+				continue;
+			}
+
+			if ( $page['file'] === 'php-code' && ! empty( $default['param']['hide_php'] ) ) {
+				continue;
+			}
+
+			if ( $page['file'] === 'include' && ! empty( $default['param']['hide_include'] ) ) {
+				continue;
+			}
+
+			if ( $page['file'] === 'settings' && ! empty( $default['param']['hide_settings'] ) ) {
+				continue;
+			}
+
+			if ( $page['file'] === 'attributes' && ! empty( $default['param']['hide_attributes'] ) ) {
+				continue;
+			}
+
+			echo '<a class="' . esc_attr( $current ) . '" data-tab="' . esc_attr( $page['file'] ) . '">' . esc_html( $page['name'] ) . '</a>';
+			$i ++;
+		}
+		echo '</h3>';
+
+		$i = 0;
+
+		echo '<div class="tab-content-wrapper wowp-tab-content" id="settings-content">';
+		foreach ( $pages as $key => $page ) {
+			$current = ( $i === 0 ) ? 'tab-content tab-content-active' : 'tab-content';
+			$file    = DashboardHelper::get_folder_path( 'settings' ) . '/' . $key . '.' . $page['file'] . '.php';
+
+			if ( $page['file'] === 'html-code' && ! empty( $default['param']['hide_html'] ) ) {
+				continue;
+			}
+
+			if ( $page['file'] === 'css-code' && ! empty( $default['param']['hide_css'] ) ) {
+				continue;
+			}
+
+			if ( $page['file'] === 'js-code' && ! empty( $default['param']['hide_js'] ) ) {
+				continue;
+			}
+
+			if ( $page['file'] === 'php-code' && ! empty( $default['param']['hide_php'] ) ) {
+				continue;
+			}
+
+			if ( $page['file'] === 'include' && ! empty( $default['param']['hide_include'] ) ) {
+				continue;
+			}
+
+			if ( $page['file'] === 'settings' && ! empty( $default['param']['hide_settings'] ) ) {
+				continue;
+			}
+
+			if ( $page['file'] === 'attributes' && ! empty( $default['param']['hide_attributes'] ) ) {
+				continue;
+			}
+
+			if ( file_exists( $file ) ) {
+				echo '<div class="' . esc_attr( $current ) . '" data-content="' . esc_attr( $page['file'] ) . '">';
+				require_once $file;
+				echo '</div>';
+			}
+			$i ++;
+		}
+		echo '</div>';
+
+	}
+
+	public static function save_item() {
+
+		if ( empty( $_POST['submit_settings'] ) ) {
+			return false;
+		}
+
+		$id       = absint( $_POST['tool_id'] );
+		$settings = apply_filters( WPCoder::PREFIX . '_save_settings', [ 'data' => [], 'formats' => [] ], $_POST );
+
+		if ( empty( $id ) ) {
+			$id_item = DBManager::insert( $settings['data'], $settings['formats'] );
+		} else {
+			$where = [
+				'id' => absint( $id ),
+			];
+			DBManager::update( $settings['data'], $where, $settings['formats'] );
+			$id_item = $id;
+		}
+
+		FolderManager::update_files( $settings['data'], $id_item );
+
+		wp_safe_redirect( Link::save_item( $id_item ) );
+		exit;
+
+	}
+
+	public static function deactivate_item($id = 0): void {
+		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : $id;
+
+		if ( ! empty( $id ) ) {
+			DBManager::update( [ 'status' => '1' ], [ 'ID' => $id ], [ '%d' ] );
+		}
+
+	}
+
+	public static function activate_item($id = 0): void {
+		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : $id;
+
+		if ( ! empty( $id ) ) {
+			DBManager::update( [ 'status' => '' ], [ 'ID' => $id ], [ '%d' ] );
+		}
+
+	}
+
+	public static function deactivate_mode($id = 0): void {
+		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : $id;
+
+		if ( ! empty( $id ) ) {
+			DBManager::update( [ 'mode' => '' ], [ 'ID' => $id ], [ '%d' ] );
+		}
+
+	}
+
+	public static function activate_mode($id = 0): void {
+		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : $id;
+
+		if ( ! empty( $id ) ) {
+			DBManager::update( [ 'mode' => '1' ], [ 'ID' => $id ], [ '%d' ] );
+		}
+
+	}
+
+}
