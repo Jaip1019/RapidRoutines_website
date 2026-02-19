@@ -45,15 +45,13 @@ const ChatbotPage = () => {
                 
                 currentConversation.current = [...conversation.messages];
                 
-                setTimeout(async () => {
-                    const success = await loadChatHistory(iframeRef.current, conversation.messages);
-                    
-                    if (success) {
-                        console.log("Successfully loaded conversation history");
-                    } else {
-                        console.error("Failed to load conversation history");
-                    }
-                }, 1500);
+                const success = await loadChatHistory(iframeRef.current, conversation.messages);
+                
+                if (success) {
+                    console.log("Successfully loaded conversation history");
+                } else {
+                    console.error("Failed to load conversation history");
+                }
             }
         };
         

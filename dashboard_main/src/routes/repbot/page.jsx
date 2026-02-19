@@ -94,11 +94,7 @@ const RepBotPage = () => {
             <div className="relative w-full h-[700px] rounded-xl overflow-hidden bg-white dark:bg-slate-950 shadow-md">
                 {isLoading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-slate-950/80 z-10">
-                        <div className="flex flex-col items-center text-center">
-                            <Loader2 className="h-10 w-10 animate-spin text-[#1e628c]" />
-                            <p className="mt-2 text-slate-600 dark:text-slate-300">Loading RepBot...</p>
-                            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">The AI model may take 1-2 minutes to initialize</p>
-                        </div>
+                        <Loader2 className="h-10 w-10 animate-spin text-[#1e628c]" />
                     </div>
                 )}
                 
