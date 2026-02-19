@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Exercise Tracker</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    @viewport {
+      width: device-width;
+      zoom: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Exercise Tracker</h2>
+
+    <div class="input-group">
+      <label for="exercise-select">Exercise</label>
+      <select id="exercise-select" onchange="toggleInputFields()">
+        <option>Push-ups</option>
+        <option>Pull-ups</option>
+        <option>Squats</option>
+        <option>Dips</option>
+        <option>Planks</option>
+        <option>Burpees</option>
+        <option>Jump Rope</option>
+        <option>Deadlifts</option>
+        <option>Bench Press</option>
+        <option>Tuck Planche</option>
+        <option>Straddle Planche</option>
+        <option>Crow Pose</option>
+        <option>Frog Pose</option>
+        <option>Front Lever</option>
+        <option>Muscle Ups</option>
+        <option>Pistol Squats</option>
+        <option>Dragon Squats</option>
+        <option>One Arm Push-ups</option>
+        <option>Clap Push-ups</option>
+        <option>Back Lever</option>
+        <option>Pike Press</option>
+        <option>Dragon Flag</option>
+        <option>Human Flag</option>
+        <option>Side Plank</option>
+        <option>Inverted Rows</option>
+        <option>Ring Dips</option>
+        <option>Leg Raises</option>
+        <option>Barbell Rows</option>
+        <option>Chin-ups</option>
+        <option>Incline Push-ups</option>
+        <option>Hip Thrusts</option>
+        <option>Tricep Dips</option>
+        <option>Wall Sit</option>
+        <option>Superman Hold</option>
+        <option>Jumping Lunges</option>
+        <option>Mountain Climbers</option>
+        <option>Glute Bridges</option>
+        <option>Box Jumps</option>
+        <option>Squat Jumps</option>
+        <option>Archer Pull-ups</option>
+        <option>Archer Push-ups</option>
+        <option>Wide Push-ups</option>
+        <option>Decline Push-ups</option>
+        <option>Handstand Push-ups</option>
+        <option>Pistol Squats (Assisted)</option>
+        <option>Bulgarian Split Squats</option>
+        <option>Wall Walks</option>
+        <option>Planche Push-ups</option>
+        <option>L-sit Hold</option>
+        <option>V-sit Hold</option>
+        <option>Human Flag (Progression)</option>
+        <option>Front Lever Progression</option>
+        <option>Back Lever Progression</option>
+        <option>Muscle-up Progression</option>
+        <option>Shoulder Taps</option>
+        <option>Dip Bar Leg Raises</option>
+        <option>Isometric Pull-up Hold</option>
+        <option>Handstand Holds</option>
+        <option>Crunches</option>
+        <option>Bicep Curls</option>
+        <option>Tricep Dips</option>
+        <option>Tricep Extensions</option>
+        <option>Hammer Curls</option>
+        <option>Barbell Curls</option>
+        <option>Overhead Press</option>
+        <option>Front Raises</option>
+        <option>Lateral Raises</option>
+        <option>Rear Delt Flyes</option>
+        <option>Chest Press</option>
+        <option>Romanian Deadlifts</option>
+        <option>Leg Press</option>
+        <option>Leg Curls</option>
+        <option>Calf Raises</option>
+        <option>Skull Crushers</option>
+        <option>Concentration Curls</option>
+        <option>Preacher Curls</option>
+        <option>Arnold Press</option>
+        <option>Bulgarian Split Squats (with weights)</option>
+        <option>Weighted Step-ups</option>
+        <option>Seated Rows</option>
+        <option>Chest Flyes</option>
+        <option>Deadlifts (Conventional)</option>
+        <option>Squat Press</option>
+        <option>Incline Bench Press</option>
+        <option>Barbell Shrugs</option>
+        <option>Kettlebell Swings</option>
+        <option>Farmers Walk</option>
+        <option>Pull-over</option>
+        <option>Reverse Flyes</option>
+
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label for="sets">Sets</label>
+      <input type="number" id="sets" placeholder="Sets" class="sets-input">
+    </div>
+
+    <div class="input-group reps-input">
+      <label for="reps" class="reps-label">Reps</label>
+      <input type="number" id="reps" placeholder="Reps" class="reps-input">
+    </div>
+
+    <div class="input-group time-group" id="time-group">
+      <label for="time">Time (in seconds)</label>
+      <input type="number" id="time" placeholder="Time in seconds">
+    </div>
+
+    <div class="input-group">
+      <label for="weight">Weight (leave empty for bodyweight)</label>
+      <div class="weight-group">
+        <input type="number" id="weight" placeholder="Weight">
+        <select id="weight-unit">
+          <option value="kg">kg</option>
+          <option value="lbs">lbs</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label for="date">Date</label>
+      <input type="date" id="date">
+    </div>
+
+    <button class="add-btn" onclick="addExercise()">Add Exercise</button>
+
+    <div class="exercise-list" id="exercise-list">
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+
+</body>
+</html>

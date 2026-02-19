@@ -62,7 +62,7 @@ const ExerciseTrackerPage = ({ limited = false }) => {
 
   useEffect(() => {
     const messageHandler = (event) => {
-      if (event.origin !== "https://exercise-tracker-tau.vercel.app" && event.origin !== window.location.origin) {
+      if (event.origin !== window.location.origin) {
         return;
       }
       if (event.data && event.data.type) {
@@ -142,7 +142,7 @@ const ExerciseTrackerPage = ({ limited = false }) => {
 
           <div className="w-full h-full">
             <iframe
-              src="https://exercise-tracker-tau.vercel.app"
+              src="/exercise-tracker/"
               className="w-full h-full border-0"
               title="Exercise Tracker"
               onLoad={() => setIsLoading(false)}
