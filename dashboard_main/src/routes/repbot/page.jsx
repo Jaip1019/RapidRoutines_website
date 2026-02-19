@@ -12,10 +12,7 @@ const RepBotPage = () => {
     
     useEffect(() => {
         const handleMessage = (event) => {
-            if (
-                event.origin !== "https://render-repbot.vercel.app" && 
-                event.origin !== "https://render-repbot.onrender.com"
-            ) {
+            if (event.origin !== window.location.origin) {
                 return;
             }
             
@@ -107,7 +104,7 @@ const RepBotPage = () => {
                 
                 <iframe 
                     ref={iframeRef}
-                    src="https://render-repbot.vercel.app/" 
+                    src="/repbot/" 
                     className="h-full w-full border-0"
                     title="RepBot AI Exercise Counter"
                     onLoad={() => {

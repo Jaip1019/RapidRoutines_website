@@ -12,12 +12,13 @@ const path = require('path');
 const fs = require('fs');
 
 // Check if routes exist before requiring them
-let authRoutes, userDataRoutes, contactRoutes, chatbotRoutes;
+let authRoutes, userDataRoutes, contactRoutes, chatbotRoutes, repbotRoutes;
 try {
     authRoutes = require('./routes/auth');
     userDataRoutes = require('./routes/user-data');
     contactRoutes = require('./routes/contact');
     chatbotRoutes = require('./routes/chatbot');
+    repbotRoutes = require('./routes/repbot');
 } catch (e) {
     console.error('Error loading routes:', e.message);
     process.exit(1);
@@ -76,6 +77,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user-data', userDataRoutes); // Register the user-data routes
 app.use('/api/contact', contactRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/repbot', repbotRoutes);
 
 // Test route
 app.get('/api', (req, res) => {
