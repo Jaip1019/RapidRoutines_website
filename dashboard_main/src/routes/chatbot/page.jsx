@@ -67,11 +67,7 @@ const ChatbotPage = () => {
     }, [isAuthenticated]);
     
     useEffect(() => {
-        const allowedOrigins = [
-            "https://render-chatbot-di08.onrender.com",
-            "https://render-chatbot.vercel.app",
-            "https://render-chatbot.onrender.com"
-        ];
+        const allowedOrigins = [window.location.origin];
         
         const messageHandlers = {
             chatMessage: (data) => {
@@ -113,7 +109,7 @@ const ChatbotPage = () => {
                 <div className="h-full w-full p-0">
                     <iframe 
                         ref={iframeRef}
-                        src="https://render-chatbot-di08.onrender.com" 
+                        src="/chatbot/" 
                         className="h-full w-full border-0"
                         onLoad={() => {
                             setIsLoading(false);
