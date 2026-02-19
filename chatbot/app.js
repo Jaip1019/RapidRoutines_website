@@ -11,16 +11,12 @@ window.chatApp.loadedMessages = new Set();
 
 function notifyParentWindow(role, content) {
   try {
-    const message = {
-      type: "chatMessage",
-      role: role,
-      content: content
-    };
-
     if (window.parent && window.parent !== window) {
-      window.parent.postMessage(message, "*");
-    } else {
-      window.postMessage(message, "*");
+      window.parent.postMessage({
+        type: "chatMessage",
+        role: role,
+        content: content
+      }, "*");
     }
   } catch (e) {
     console.error("Error sending message to parent window:", e);
@@ -29,12 +25,10 @@ function notifyParentWindow(role, content) {
 
 function notifyChatEnd() {
   try {
-    const message = { type: "chatEnded" };
-
     if (window.parent && window.parent !== window) {
-      window.parent.postMessage(message, "*");
-    } else {
-      window.postMessage(message, "*");
+      window.parent.postMessage({
+        type: "chatEnded"
+      }, "*");
     }
   } catch (e) {
     console.error("Error sending chat end notification:", e);
@@ -72,7 +66,7 @@ function loadMessage(role, content) {
     } else if (role === "assistant") {
       const html = `
         <div class="message-content">
-          <img class="avatar" src="/chatbot/logo.jpg" alt="">
+          <img class="avatar" src="logo.jpg" alt="">
           <p class="text"></p>
         </div>
       `;
@@ -157,7 +151,7 @@ async function generateAPIResponse(incomingMessageDiv) {
 function showPlaceholderMessage() {
   const html = `
     <div class="message-content">
-      <img class="avatar" src="/chatbot/logo.jpg" alt="">
+      <img class="avatar" src="logo.jpg" alt="">
       <p class="text"></p>
     </div>
   `;
@@ -208,7 +202,7 @@ function displayWelcomeMessage() {
   
   const html = `
     <div class="message-content">
-      <img class="avatar" src="/chatbot/logo.jpg" alt="">
+      <img class="avatar" src="logo.jpg" alt="">
       <p class="text"></p>
     </div>
   `;
@@ -270,7 +264,6 @@ function initializeApp() {
   } 
 
   loadDataFromLocalstorage();
-  window.chatApp.startNewChat = loadDataFromLocalstorage;
   
   if (window.parent && window.parent !== window) {
     setTimeout(() => {
@@ -286,6 +279,3 @@ function initializeApp() {
 }
 
 document.addEventListener('DOMContentLoaded', initializeApp);
-if (document.readyState !== 'loading') {
-  initializeApp();
-}
