@@ -1,19 +1,47 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Footer } from "@/layouts/footer";
 import { useAuth } from "@/contexts/auth-context";
 import axios from "axios";
+import { mountLegacyApp } from "@/utils/legacy-app-loader";
 
 const ExerciseTrackerPage = ({ limited = false }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, user } = useAuth();
   const [trackerExercises, setTrackerExercises] = useState([]);
   const [notification, setNotification] = useState(null);
+  const mountRef = useRef(null);
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchExercisesFromServer();
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    let cleanup = () => {};
+    let isMounted = true;
+
+    const setup = async () => {
+      try {
+        cleanup = await mountLegacyApp({
+          appBasePath: "/exercise-tracker",
+          mountNode: mountRef.current,
+        });
+        if (!isMounted) return;
+        setIsLoading(false);
+      } catch (error) {
+        if (!isMounted) return;
+        setIsLoading(false);
+      }
+    };
+
+    setup();
+
+    return () => {
+      isMounted = false;
+      cleanup();
+    };
+  }, []);
 
   const fetchExercisesFromServer = async () => {
     try {
@@ -68,30 +96,24 @@ const ExerciseTrackerPage = ({ limited = false }) => {
       if (event.data && event.data.type) {
         switch (event.data.type) {
           case "checkAuth": {
-            const iframe = document.querySelector("iframe");
-            if (iframe && iframe.contentWindow) {
-              iframe.contentWindow.postMessage(
-                {
-                  type: "authStatus",
-                  isAuthenticated: isAuthenticated,
-                  userId: user?.id || null,
-                },
-                "*"
-              );
-            }
+            window.postMessage(
+              {
+                type: "authStatus",
+                isAuthenticated: isAuthenticated,
+                userId: user?.id || null,
+              },
+              "*",
+            );
             break;
           }
           case "getTrackerExercises": {
-            const iframeForData = document.querySelector("iframe");
-            if (iframeForData && iframeForData.contentWindow) {
-              iframeForData.contentWindow.postMessage(
-                {
-                  type: "trackerExercisesData",
-                  exercises: trackerExercises,
-                },
-                "*"
-              );
-            }
+            window.postMessage(
+              {
+                type: "trackerExercisesData",
+                exercises: trackerExercises,
+              },
+              "*",
+            );
             break;
           }
           case "saveTrackerExercise":
@@ -106,6 +128,8 @@ const ExerciseTrackerPage = ({ limited = false }) => {
             break;
           case "exerciseNotAuthenticated":
             showNotification("warning", "Sign in to save exercises");
+            break;
+          default:
             break;
         }
       }
@@ -140,17 +164,7 @@ const ExerciseTrackerPage = ({ limited = false }) => {
             </div>
           )}
 
-          <div className="w-full h-full">
-            <iframe
-              src="/exercise-tracker/"
-              className="w-full h-full border-0"
-              title="Exercise Tracker"
-              onLoad={() => setIsLoading(false)}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              style={{ height: "100%", width: "100%" }}
-            ></iframe>
-          </div>
+          <div ref={mountRef} className="w-full h-full" />
         </div>
       </div>
 

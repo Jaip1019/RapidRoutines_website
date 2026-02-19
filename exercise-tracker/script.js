@@ -6,7 +6,7 @@ let exercisesData = [];
 let isAuthenticated = false;
 let userId = null;
 
-window.onload = function() {
+function initializeExerciseTracker() {
   const estOptions = { 
     timeZone: 'America/New_York',
     year: 'numeric',
@@ -34,7 +34,13 @@ window.onload = function() {
     }
   });
   toggleInputFields();
-};
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('load', initializeExerciseTracker);
+} else {
+  initializeExerciseTracker();
+}
 
 function isTimedExercise(exercise) {
   return timedExercises.includes(exercise);

@@ -374,6 +374,10 @@ class ExerciseCounter {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        new ExerciseCounter();
+    });
+} else {
     new ExerciseCounter();
-});
+}
