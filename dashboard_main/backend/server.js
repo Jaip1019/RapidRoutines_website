@@ -9,12 +9,14 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 // Check if routes exist before requiring them
-let authRoutes, userDataRoutes;
+let authRoutes, userDataRoutes, contactRoutes;
 try {
     authRoutes = require('./routes/auth');
     userDataRoutes = require('./routes/user-data');
+    contactRoutes = require('./routes/contact');
 } catch (e) {
     console.error('Error loading routes:', e.message);
     process.exit(1);
@@ -29,8 +31,12 @@ app.use(express.json({ limit: '50mb' })); // Increased limit for larger payloads
 // CORS configuration
 const allowedOrigins = [
     'http://localhost:3000', 
+    'http://localhost:4173',
     'https://new-5t2n.onrender.com',
     'https://www.rapidroutines-dashboard.org',
+    'https://rapidroutines-dashboard.org',
+    'https://www.rapidroutines.org',
+    'https://rapidroutines.org',
 ];
 
 app.use(cors({
@@ -67,29 +73,76 @@ mongoose.connect(process.env.MONGO_URI, {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user-data', userDataRoutes); // Register the user-data routes
+app.use('/api/contact', contactRoutes);
 
 // Test route
 app.get('/api', (req, res) => {
     res.send('RapidRoutines API is running');
 });
 
-// Determine the correct path to the frontend build directory
-const buildPath = path.resolve(__dirname, '../dist');
-console.log('Serving static files from:', buildPath);
+// Paths for serving the full website and dashboard from one backend.
+const websiteRootPath = path.resolve(__dirname, '../..');
+const dashboardPathCandidates = [
+    path.join(websiteRootPath, 'dashboard'),
+    path.resolve(__dirname, '../dist'),
+];
+const dashboardBuildPath = dashboardPathCandidates.find((candidate) => fs.existsSync(path.join(candidate, 'index.html')));
 
-// Check if the build directory exists
-const fs = require('fs');
-if (!fs.existsSync(buildPath)) {
-    console.warn(`Warning: Build directory not found at ${buildPath}`);
+console.log('Website root path:', websiteRootPath);
+console.log('Dashboard build path:', dashboardBuildPath || '(not found)');
+
+if (!dashboardBuildPath) {
+    console.warn('Warning: dashboard build output was not found. /dashboard routes may fail until dashboard is built.');
 }
 
-// Serve static files from the React app
-app.use(express.static(buildPath));
+function resolvePublicPath(relativePath) {
+    const normalized = path.normalize(relativePath).replace(/^(\.\.(\/|\\|$))+/, '');
+    const fullPath = path.join(websiteRootPath, normalized);
+    if (!fullPath.startsWith(websiteRootPath)) return null;
+    return fullPath;
+}
 
-// The "catchall" handler: for any request that doesn't
-// match one of the routes above, send back the index.html file
-app.get('*', (req, res) => {
-    res.sendFile(path.join(buildPath, 'index.html'));
+// Serve dashboard SPA assets first.
+if (dashboardBuildPath) {
+    app.use('/dashboard', express.static(dashboardBuildPath));
+}
+
+// Serve root website static files and assets (html, css, js, images, etc.).
+app.use(express.static(websiteRootPath));
+
+// Dashboard SPA fallback.
+app.get('/dashboard', (req, res) => {
+    if (!dashboardBuildPath) return res.status(503).send('Dashboard build not found');
+    return res.sendFile(path.join(dashboardBuildPath, 'index.html'));
+});
+app.get('/dashboard/*', (req, res) => {
+    if (!dashboardBuildPath) return res.status(503).send('Dashboard build not found');
+    return res.sendFile(path.join(dashboardBuildPath, 'index.html'));
+});
+
+// Clean URL support for static root pages (e.g. /about -> /about.html).
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+
+    const requestPath = req.path === '/' ? '/index.html' : req.path;
+    const directCandidate = resolvePublicPath(requestPath);
+    if (directCandidate && fs.existsSync(directCandidate) && fs.statSync(directCandidate).isFile()) {
+        return res.sendFile(directCandidate);
+    }
+
+    if (!path.extname(requestPath)) {
+        const htmlCandidate = resolvePublicPath(`${requestPath}.html`);
+        if (htmlCandidate && fs.existsSync(htmlCandidate) && fs.statSync(htmlCandidate).isFile()) {
+            return res.sendFile(htmlCandidate);
+        }
+    }
+
+    const fallback = path.join(websiteRootPath, 'index.html');
+    if (fs.existsSync(fallback)) {
+        return res.sendFile(fallback);
+    }
+
+    return res.status(404).send('Not found');
 });
 
 // Error handling middleware
