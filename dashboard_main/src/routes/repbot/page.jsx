@@ -1,7 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera } from "@mediapipe/camera_utils";
-import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
-import { POSE_CONNECTIONS, Pose } from "@mediapipe/pose";
 import { Footer } from "@/layouts/footer";
 import { useExercises } from "@/contexts/exercise-context";
 
@@ -17,11 +14,38 @@ const exerciseTypes = [
 
 const mapExerciseLabel = (value) => exerciseTypes.find((item) => item.value === value)?.label || value;
 
+const ensureScript = (src) =>
+  new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[data-repbot-src="${src}"]`);
+    if (existing) {
+      if (existing.dataset.loaded === "true") {
+        resolve();
+      } else {
+        existing.addEventListener("load", () => resolve(), { once: true });
+        existing.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), { once: true });
+      }
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    script.dataset.repbotSrc = src;
+    script.onload = () => {
+      script.dataset.loaded = "true";
+      resolve();
+    };
+    script.onerror = () => reject(new Error(`Failed to load ${src}`));
+    document.head.appendChild(script);
+  });
+
 const RepBotPage = () => {
   const { addExercise } = useExercises();
 
   const [isCameraLoading, setIsCameraLoading] = useState(false);
   const [isCameraStarted, setIsCameraStarted] = useState(false);
+  const [isEngineReady, setIsEngineReady] = useState(false);
   const [repCounter, setRepCounter] = useState(0);
   const [exerciseType, setExerciseType] = useState("bicepCurl");
   const [feedback, setFeedback] = useState("");
@@ -38,6 +62,14 @@ const RepBotPage = () => {
   const exerciseTypeRef = useRef("bicepCurl");
   const addExerciseRef = useRef(addExercise);
 
+  useEffect(() => {
+    exerciseTypeRef.current = exerciseType;
+  }, [exerciseType]);
+
+  useEffect(() => {
+    addExerciseRef.current = addExercise;
+  }, [addExercise]);
+
   const resizeCanvas = () => {
     if (!containerRef.current || !canvasRef.current) return;
 
@@ -46,14 +78,6 @@ const RepBotPage = () => {
     canvasRef.current.width = width;
     canvasRef.current.height = height;
   };
-
-  useEffect(() => {
-    exerciseTypeRef.current = exerciseType;
-  }, [exerciseType]);
-
-  useEffect(() => {
-    addExerciseRef.current = addExercise;
-  }, [addExercise]);
 
   const sendLandmarksToBackend = async (landmarks) => {
     const response = await fetch("/api/repbot/process_landmarks", {
@@ -98,51 +122,75 @@ const RepBotPage = () => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
+    const setupEngine = async () => {
+      try {
+        setError("");
+
+        await ensureScript("https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js");
+        await ensureScript("https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js");
+        await ensureScript("https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js");
+
+        if (!isMounted) return;
+
+        if (!window.Pose || !window.POSE_CONNECTIONS || !window.drawConnectors || !window.drawLandmarks || !window.Camera) {
+          throw new Error("RepBot engine failed to initialize.");
+        }
+
+        const pose = new window.Pose({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+        });
+
+        pose.setOptions({
+          modelComplexity: 1,
+          smoothLandmarks: true,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+        });
+
+        pose.onResults(async (results) => {
+          const canvas = canvasRef.current;
+          const ctx = canvas?.getContext("2d");
+
+          if (!canvas || !ctx) return;
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          if (results.poseLandmarks) {
+            window.drawConnectors(ctx, results.poseLandmarks, window.POSE_CONNECTIONS, {
+              color: "#1E628C",
+              lineWidth: 2,
+            });
+
+            window.drawLandmarks(ctx, results.poseLandmarks, {
+              color: "#FF0000",
+              lineWidth: 1,
+              radius: 3,
+            });
+
+            try {
+              await sendLandmarksToBackend(results.poseLandmarks);
+            } catch (requestError) {
+              setError("Connection error with RepBot backend.");
+            }
+          }
+        });
+
+        poseRef.current = pose;
+        setIsEngineReady(true);
+      } catch (engineError) {
+        if (!isMounted) return;
+        setError(engineError.message || "Failed to load RepBot engine.");
+      }
+    };
+
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
-
-    const pose = new Pose({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
-    });
-
-    pose.setOptions({
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5,
-    });
-
-    pose.onResults(async (results) => {
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext("2d");
-
-      if (!canvas || !ctx) return;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      if (results.poseLandmarks) {
-        drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
-          color: "#1E628C",
-          lineWidth: 2,
-        });
-
-        drawLandmarks(ctx, results.poseLandmarks, {
-          color: "#FF0000",
-          lineWidth: 1,
-          radius: 3,
-        });
-
-        try {
-          await sendLandmarksToBackend(results.poseLandmarks);
-        } catch (requestError) {
-          setError("Connection error with RepBot backend.");
-        }
-      }
-    });
-
-    poseRef.current = pose;
+    setupEngine();
 
     return () => {
+      isMounted = false;
       window.removeEventListener("resize", resizeCanvas);
 
       if (cameraRef.current) {
@@ -159,6 +207,10 @@ const RepBotPage = () => {
     try {
       setError("");
       setIsCameraLoading(true);
+
+      if (!isEngineReady) {
+        throw new Error("RepBot engine is still loading. Please wait a moment.");
+      }
 
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error("getUserMedia is not supported in this browser");
@@ -186,7 +238,7 @@ const RepBotPage = () => {
         };
       });
 
-      const camera = new Camera(videoRef.current, {
+      const camera = new window.Camera(videoRef.current, {
         onFrame: async () => {
           if (poseRef.current && videoRef.current) {
             await poseRef.current.send({ image: videoRef.current });
@@ -248,10 +300,10 @@ const RepBotPage = () => {
             <button
               type="button"
               onClick={startCamera}
-              disabled={isCameraLoading}
+              disabled={isCameraLoading || !isEngineReady}
               className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-[#1e628c] px-5 py-3 text-white disabled:cursor-not-allowed disabled:bg-slate-400"
             >
-              {isCameraLoading ? "Starting..." : "Start Camera"}
+              {isCameraLoading ? "Starting..." : isEngineReady ? "Start Camera" : "Loading RepBot..."}
             </button>
           )}
 
