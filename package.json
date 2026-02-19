@@ -1,6 +1,9 @@
 {
   "name": "rapidroutines-site",
   "private": true,
+  "dependencies": {
+    "nodemailer": "^6.9.16"
+  },
   "scripts": {
     "dev": "node local-server.js",
     "serve": "node local-server.js",

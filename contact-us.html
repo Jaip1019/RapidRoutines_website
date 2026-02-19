@@ -1044,15 +1044,12 @@ function auxinNS(n){for(var e=n.split("."),a=window,i="",r=e.length,t=0;r>t;t++)
 
             
             
-            <form action="https://rapidroutines.org/contact-us/" id="contactForm" class="aux-contact-form" method="post">
-                <input type="text" name="cName" id="cName" placeholder="Name" required="">
-                <input type="email" name="cEmail" id="cEmail" placeholder="E-Mail" required="">
-                <input type="text" name="cURL" id="cURL" placeholder="Website">
-                <textarea name="cComment" id="cComment" placeholder="Message" required=""></textarea>
+            <form action="/api/contact" id="contactForm" class="aux-contact-form" method="post">
+                <input type="text" name="name" id="contactName" placeholder="Name" required="">
+                <input type="email" name="email" id="contactEmail" placeholder="E-Mail" required="">
+                <textarea name="message" id="contactMessage" placeholder="Message" required=""></textarea>
                 <input type="submit" id="submit" class="submit" value="Submit">
-
-                
-                <input type="hidden" name="formSubmitted" id="formSubmitted" value="true">
+                <p id="contactFormStatus" style="margin-top:12px;display:none;"></p>
             </form>
 
             
@@ -1376,6 +1373,7 @@ var WprConfig = {"ajaxurl":"https:\/\/rapidroutines.org\/wp-admin\/admin-ajax.ph
 </script>
 <script data-cfasync="false" src="js/frontend.min_1.js" id="wpr-addons-js-js"></script>
 <script src="js/modal-popups.min.js" id="wpr-modal-popups-js-js"></script>
+<script src="js/contact-form.js"></script>
 		<style>
 			.unlimited-elements-background-overlay{
 				position:absolute;

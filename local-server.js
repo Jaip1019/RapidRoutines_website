@@ -2,6 +2,7 @@ const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
+const querystring = require("querystring");
 
 const PORT = process.env.PORT || 4173;
 const ROOT = process.cwd();
@@ -42,9 +43,123 @@ function safePath(urlPath) {
   return path.join(ROOT, normalized);
 }
 
+function sendJson(res, statusCode, payload) {
+  res.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
+  res.end(JSON.stringify(payload));
+}
+
+function parseRequestBody(req) {
+  return new Promise((resolve, reject) => {
+    let raw = "";
+    req.on("data", (chunk) => {
+      raw += chunk;
+      if (raw.length > 1_000_000) {
+        reject(new Error("Request body too large."));
+      }
+    });
+    req.on("end", () => {
+      const contentType = (req.headers["content-type"] || "").split(";")[0].trim();
+      if (!raw) {
+        resolve({});
+        return;
+      }
+
+      try {
+        if (contentType === "application/json") {
+          resolve(JSON.parse(raw));
+          return;
+        }
+
+        if (contentType === "application/x-www-form-urlencoded") {
+          resolve(querystring.parse(raw));
+          return;
+        }
+      } catch (err) {
+        reject(err);
+        return;
+      }
+
+      resolve({});
+    });
+    req.on("error", reject);
+  });
+}
+
+function normalizeContactPayload(payload) {
+  return {
+    name: String(payload?.name || "").trim(),
+    email: String(payload?.email || "").trim(),
+    message: String(payload?.message || "").trim(),
+  };
+}
+
+function validateEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function sendContactEmail({ name, email, message }) {
+  const nodemailer = require("nodemailer");
+  const host = process.env.ZOHO_SMTP_HOST || "smtp.zoho.com";
+  const port = Number(process.env.ZOHO_SMTP_PORT || 465);
+  const secure = process.env.ZOHO_SMTP_SECURE
+    ? process.env.ZOHO_SMTP_SECURE === "true"
+    : port === 465;
+  const user = process.env.ZOHO_SMTP_USER;
+  const pass = process.env.ZOHO_SMTP_PASS;
+  const to = process.env.CONTACT_TO_EMAIL || "support@rapidroutines.org";
+  const from = process.env.CONTACT_FROM_EMAIL || user;
+
+  if (!user || !pass) {
+    throw new Error("Missing Zoho SMTP credentials (ZOHO_SMTP_USER/ZOHO_SMTP_PASS).");
+  }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass },
+  });
+
+  await transporter.sendMail({
+    from,
+    to,
+    replyTo: email,
+    subject: `New Contact Form Message from ${name}`,
+    text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
+  });
+}
+
 http
   .createServer((req, res) => {
     const urlPath = req.url.split("?")[0];
+
+    if (urlPath === "/api/contact") {
+      if (req.method !== "POST") {
+        return sendJson(res, 405, { message: "Method not allowed" });
+      }
+
+      parseRequestBody(req)
+        .then(async (payload) => {
+          const data = normalizeContactPayload(payload);
+
+          if (!data.name || !data.email || !data.message) {
+            return sendJson(res, 400, { message: "Name, email, and message are required." });
+          }
+
+          if (!validateEmail(data.email)) {
+            return sendJson(res, 400, { message: "Please enter a valid email address." });
+          }
+
+          await sendContactEmail(data);
+          return sendJson(res, 200, { message: "Message sent successfully." });
+        })
+        .catch((error) => {
+          console.error("Contact form send error:", error);
+          return sendJson(res, 500, { message: "Unable to send message right now." });
+        });
+
+      return;
+    }
 
     // Proxy API requests to the deployed backend so everything stays under one local domain.
     if (urlPath === "/api" || urlPath.startsWith("/api/")) {
