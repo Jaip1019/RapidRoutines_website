@@ -1,13 +1,14 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const ChatbotKnowledge = require('../models/chatbotKnowledge');
 
 const router = express.Router();
 const knowledgeBasePath = path.join(__dirname, '..', 'data', 'chatbot-knowledge-base.json');
 
-let knowledgeBase = [];
+let fallbackKnowledgeBase = [];
 try {
-  knowledgeBase = JSON.parse(fs.readFileSync(knowledgeBasePath, 'utf8'));
+  fallbackKnowledgeBase = JSON.parse(fs.readFileSync(knowledgeBasePath, 'utf8'));
 } catch (error) {
   console.error('Failed to load chatbot knowledge base:', error.message);
 }
@@ -21,19 +22,30 @@ function tokenize(text) {
 }
 
 function rankRelevantDocuments(query) {
+  return rankRelevantDocumentsFromCollection(query, fallbackKnowledgeBase);
+}
+
+function rankRelevantDocumentsFromCollection(query, collection) {
   const queryTokens = new Set(tokenize(query));
   if (queryTokens.size === 0) {
     return [];
   }
 
-  const scored = knowledgeBase
+  const scored = collection
     .map((doc) => {
-      const docTokens = tokenize(doc.content);
+      const content = String(doc?.content || '');
+      if (!content) {
+        return { doc: { content: '' }, score: 0 };
+      }
+
+      const docTokens = Array.isArray(doc?.tokens) && doc.tokens.length
+        ? doc.tokens
+        : tokenize(content);
       let score = 0;
       for (const token of docTokens) {
         if (queryTokens.has(token)) score += 1;
       }
-      return { doc, score };
+      return { doc: { content }, score };
     })
     .sort((a, b) => b.score - a.score)
     .filter((item) => item.score > 0)
@@ -91,7 +103,9 @@ router.post('/generate', async (req, res) => {
       return res.status(500).json({ error: 'GEMINI_API_KEY not set in environment variables.' });
     }
 
-    const relevantDocs = rankRelevantDocuments(userQuery);
+    const mongoDocs = await ChatbotKnowledge.find({}, { content: 1, tokens: 1, _id: 0 }).lean();
+    const sourceDocs = mongoDocs.length > 0 ? mongoDocs : fallbackKnowledgeBase;
+    const relevantDocs = rankRelevantDocumentsFromCollection(userQuery, sourceDocs);
     const prompt = buildPrompt(userQuery, relevantDocs, context);
     const geminiApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
     const url = `${geminiApiUrl}?key=${geminiApiKey}`;
