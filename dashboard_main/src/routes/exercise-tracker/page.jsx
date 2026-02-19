@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Footer } from "@/layouts/footer";
 import { useAuth } from "@/contexts/auth-context";
 import axios from "axios";
@@ -8,6 +8,7 @@ const ExerciseTrackerPage = ({ limited = false }) => {
   const { isAuthenticated, user } = useAuth();
   const [trackerExercises, setTrackerExercises] = useState([]);
   const [notification, setNotification] = useState(null);
+  const iframeRef = useRef(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -65,31 +66,30 @@ const ExerciseTrackerPage = ({ limited = false }) => {
       if (event.origin !== window.location.origin) {
         return;
       }
+
       if (event.data && event.data.type) {
         switch (event.data.type) {
           case "checkAuth": {
-            const iframe = document.querySelector("iframe");
-            if (iframe && iframe.contentWindow) {
-              iframe.contentWindow.postMessage(
+            if (iframeRef.current?.contentWindow) {
+              iframeRef.current.contentWindow.postMessage(
                 {
                   type: "authStatus",
                   isAuthenticated: isAuthenticated,
                   userId: user?.id || null,
                 },
-                "*"
+                "*",
               );
             }
             break;
           }
           case "getTrackerExercises": {
-            const iframeForData = document.querySelector("iframe");
-            if (iframeForData && iframeForData.contentWindow) {
-              iframeForData.contentWindow.postMessage(
+            if (iframeRef.current?.contentWindow) {
+              iframeRef.current.contentWindow.postMessage(
                 {
                   type: "trackerExercisesData",
                   exercises: trackerExercises,
                 },
-                "*"
+                "*",
               );
             }
             break;
@@ -107,9 +107,12 @@ const ExerciseTrackerPage = ({ limited = false }) => {
           case "exerciseNotAuthenticated":
             showNotification("warning", "Sign in to save exercises");
             break;
+          default:
+            break;
         }
       }
     };
+
     window.addEventListener("message", messageHandler);
     return () => {
       window.removeEventListener("message", messageHandler);
@@ -133,24 +136,23 @@ const ExerciseTrackerPage = ({ limited = false }) => {
       )}
 
       <div className="flex-grow flex flex-col gap-y-4 p-0 md:p-2">
-        <div className="relative rounded-lg shadow-sm overflow-hidden flex-grow h-[calc(100vh-120px)]">
+        <div className="relative overflow-hidden flex-grow h-[calc(100vh-120px)]">
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
-              <div className="h-12 w-12 rounded-full border-4 border-[#1e628c]/30 border-t-[#1e628c] animate-spin"></div>
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100/85">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#1e628c]/30 border-t-[#1e628c]"></div>
             </div>
           )}
 
-          <div className="w-full h-full">
-            <iframe
-              src="/exercise-tracker/"
-              className="w-full h-full border-0"
-              title="Exercise Tracker"
-              onLoad={() => setIsLoading(false)}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              style={{ height: "100%", width: "100%" }}
-            ></iframe>
-          </div>
+          <iframe
+            ref={iframeRef}
+            src="/exercise-tracker/"
+            className="w-full h-full border-0"
+            title="Exercise Tracker"
+            onLoad={() => setIsLoading(false)}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            style={{ height: "100%", width: "100%" }}
+          ></iframe>
         </div>
       </div>
 
