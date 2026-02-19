@@ -12,11 +12,12 @@ const path = require('path');
 const fs = require('fs');
 
 // Check if routes exist before requiring them
-let authRoutes, userDataRoutes, contactRoutes;
+let authRoutes, userDataRoutes, contactRoutes, chatbotRoutes;
 try {
     authRoutes = require('./routes/auth');
     userDataRoutes = require('./routes/user-data');
     contactRoutes = require('./routes/contact');
+    chatbotRoutes = require('./routes/chatbot');
 } catch (e) {
     console.error('Error loading routes:', e.message);
     process.exit(1);
@@ -74,6 +75,7 @@ mongoose.connect(process.env.MONGO_URI, {
 app.use('/api/auth', authRoutes);
 app.use('/api/user-data', userDataRoutes); // Register the user-data routes
 app.use('/api/contact', contactRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 
 // Test route
 app.get('/api', (req, res) => {
